@@ -11,12 +11,12 @@ String generateFlutterClassHierarchy({
   String? className,
 }) {
   final buffer = StringBuffer();
-  
+
   buffer.writeln("import 'package:flutter/widgets.dart';");
   buffer.writeln();
-  
+
   final mainClassName = className ?? '${fontFamily}Icons';
-  
+
   // Generate all subclasses first
   folderStructure.forEach((folder, svgFiles) {
     if (folder != 'root') {
@@ -24,34 +24,39 @@ String generateFlutterClassHierarchy({
       buffer.writeln('class $subClassName {');
       buffer.writeln('  const $subClassName._();');
       buffer.writeln();
+      buffer.writeln('// ignore: unused_field');
       buffer.writeln('  static const _kFontFam = \'$fontFamily\';');
-      buffer.writeln('  static const String? _kFontPkg = null;');
       buffer.writeln();
-      
+
       final folderGlyphNames = svgFiles.keys.toList();
       for (final glyph in glyphList) {
         final name = glyph.metadata.name;
         if (name != null && folderGlyphNames.contains(name)) {
           final charCode = glyph.metadata.charCode;
           if (charCode != null) {
+            final camelCaseName = _formatIconName(name);
             buffer.writeln('  /// $name icon');
-            buffer.writeln('  final IconData $name = '
-                'const IconData(0x${charCode.toRadixString(16)}, fontFamily: _kFontFam, fontPackage: _kFontPkg);');
+            buffer.writeln('  final IconData $camelCaseName = '
+                'const IconData(0x${charCode.toRadixString(16)}, fontFamily: _kFontFam);');
           }
         }
       }
-      
+
       buffer.writeln('}');
       buffer.writeln();
     }
   });
-  
+
   // Generate main class
   buffer.writeln('/// Icons generated from $fontFamily font');
   buffer.writeln('class $mainClassName {');
   buffer.writeln('  const $mainClassName._();');
   buffer.writeln();
-  
+  buffer.writeln('// ignore: unused_field');
+  buffer.writeln('  static const _kFontFam = \'$fontFamily\';');
+  // Removed _kFontPkg declaration
+  buffer.writeln();
+
   // Generate static subclass references
   folderStructure.forEach((folder, svgFiles) {
     if (folder == 'root') {
@@ -59,13 +64,14 @@ String generateFlutterClassHierarchy({
     } else {
       final subClassName = '${mainClassName}${_formatSubclassName(folder)}';
       buffer.writeln('  /// Directory path: $folder');
-      buffer.writeln('  static const $subClassName ${_formatGetterName(folder)} = $subClassName._();');
+      buffer.writeln(
+          '  static const $subClassName ${_formatGetterName(folder)} = $subClassName._();');
       buffer.writeln();
     }
   });
-  
+
   buffer.writeln('}');
-  
+
   return buffer.toString();
 }
 
@@ -97,10 +103,20 @@ void _generateIconConstants(StringBuffer buffer, List<GenericGlyph> glyphList,
     if (name != null && iconNames.contains(name)) {
       final charCode = glyph.metadata.charCode;
       if (charCode != null) {
+        final camelCaseName = _formatIconName(name);
         buffer.writeln('$indent/// $name icon');
-        buffer.writeln('${indent}static const IconData $name = '
-            'IconData(0x${charCode.toRadixString(16)}, fontFamily: _kFontFam, fontPackage: _kFontPkg);');
+        buffer.writeln('${indent}static const IconData $camelCaseName = '
+            'IconData(0x${charCode.toRadixString(16)}, fontFamily: _kFontFam);');
       }
     }
   }
+}
+
+/// Helper function to format icon name as camelCase
+String _formatIconName(String name) {
+  final parts = name.split('_');
+  return parts.first + parts.skip(1).map((part) {
+    if (part.isEmpty) return '';
+    return part[0].toUpperCase() + part.substring(1).toLowerCase();
+  }).join('');
 }
