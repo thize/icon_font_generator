@@ -23,12 +23,9 @@ String preprocessSvg(String svgContent) {
       }
     }
 
-    print(document.toXmlString());
-
     return document.toXmlString();
   } catch (e) {
     // If parsing fails, return original content
-    print(e);
     return svgContent;
   }
 }

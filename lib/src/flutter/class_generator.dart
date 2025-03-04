@@ -92,7 +92,7 @@ String generateFlutterClassHierarchy({
       buffer.writeln();
     }
   });
-  
+
   // Add allIcons list for root icons
   if (rootIconNames.isNotEmpty) {
     buffer.writeln('  /// List of all root icons');
