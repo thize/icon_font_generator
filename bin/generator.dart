@@ -7,6 +7,7 @@ import 'package:icon_font_generator/src/cli/options.dart';
 import 'package:icon_font_generator/src/common/api.dart';
 import 'package:icon_font_generator/src/flutter/class_generator.dart';
 import 'package:icon_font_generator/src/otf/io.dart';
+import 'package:icon_font_generator/src/svg/svg_preprocessor.dart';
 import 'package:icon_font_generator/src/utils/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
@@ -90,13 +91,16 @@ void _run(CliArguments parsedArgs) {
     final fileName = p.basenameWithoutExtension(f.path);
 
     if (folders.length == 1 && folders[0] == '.') {
-      // Root level SVG
-      svgMap['root']![fileName] = File(f.path).readAsStringSync();
+      String svgContent = File(f.path).readAsStringSync();
+      svgContent = preprocessSvg(svgContent);
+      svgMap['root']![fileName] = svgContent;
     } else {
       // Nested SVG
       final folderPath = folders.join('_');
       svgMap.putIfAbsent(folderPath, () => {});
-      svgMap[folderPath]![fileName] = File(f.path).readAsStringSync();
+      String svgContent = File(f.path).readAsStringSync();
+      svgContent = preprocessSvg(svgContent);
+      svgMap[folderPath]![fileName] = svgContent;
     }
   }
 
