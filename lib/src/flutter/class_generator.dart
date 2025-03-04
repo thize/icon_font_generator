@@ -29,18 +29,30 @@ String generateFlutterClassHierarchy({
       buffer.writeln();
 
       final folderGlyphNames = svgFiles.keys.toList();
+      final iconNames = <String>[];
+
       for (final glyph in glyphList) {
         final name = glyph.metadata.name;
         if (name != null && folderGlyphNames.contains(name)) {
           final charCode = glyph.metadata.charCode;
           if (charCode != null) {
             final camelCaseName = _formatIconName(name);
+            iconNames.add(camelCaseName);
             buffer.writeln('  /// $name icon');
             buffer.writeln('  final IconData $camelCaseName = '
                 'const IconData(0x${charCode.toRadixString(16)}, fontFamily: _kFontFam);');
           }
         }
       }
+
+      // Add allIcons list
+      buffer.writeln();
+      buffer.writeln('  /// List of all icons in this class');
+      buffer.writeln('  List<IconData> get allIcons => [');
+      for (final iconName in iconNames) {
+        buffer.writeln('    $iconName,');
+      }
+      buffer.writeln('  ];');
 
       buffer.writeln('}');
       buffer.writeln();
@@ -54,8 +66,19 @@ String generateFlutterClassHierarchy({
   buffer.writeln();
   buffer.writeln('// ignore: unused_field');
   buffer.writeln('  static const _kFontFam = \'$fontFamily\';');
-  // Removed _kFontPkg declaration
   buffer.writeln();
+
+  // Collect root icons for allIcons list
+  final rootIconNames = <String>[];
+  if (folderStructure.containsKey('root')) {
+    for (final glyph in glyphList) {
+      final name = glyph.metadata.name;
+      if (name != null && folderStructure['root']!.keys.contains(name)) {
+        final camelCaseName = _formatIconName(name);
+        rootIconNames.add(camelCaseName);
+      }
+    }
+  }
 
   // Generate static subclass references
   folderStructure.forEach((folder, svgFiles) {
@@ -69,6 +92,31 @@ String generateFlutterClassHierarchy({
       buffer.writeln();
     }
   });
+  
+  // Add allIcons list for root icons
+  if (rootIconNames.isNotEmpty) {
+    buffer.writeln('  /// List of all root icons');
+    buffer.writeln('  static List<IconData> get rootIcons => [');
+    for (final iconName in rootIconNames) {
+      buffer.writeln('    $iconName,');
+    }
+    buffer.writeln('  ];');
+  }
+
+  // Add combined allIcons getter
+  buffer.writeln();
+  buffer.writeln('  /// List of all icons in all categories');
+  buffer.writeln('  static List<IconData> get allIcons => [');
+  if (rootIconNames.isNotEmpty) {
+    buffer.writeln('    ...rootIcons,');
+  }
+  folderStructure.forEach((folder, svgFiles) {
+    if (folder != 'root') {
+      final getterName = _formatGetterName(folder);
+      buffer.writeln('    ...$getterName.allIcons,');
+    }
+  });
+  buffer.writeln('  ];');
 
   buffer.writeln('}');
 
@@ -115,8 +163,9 @@ void _generateIconConstants(StringBuffer buffer, List<GenericGlyph> glyphList,
 /// Helper function to format icon name as camelCase
 String _formatIconName(String name) {
   final parts = name.split('_');
-  return parts.first + parts.skip(1).map((part) {
-    if (part.isEmpty) return '';
-    return part[0].toUpperCase() + part.substring(1).toLowerCase();
-  }).join('');
+  return parts.first +
+      parts.skip(1).map((part) {
+        if (part.isEmpty) return '';
+        return part[0].toUpperCase() + part.substring(1).toLowerCase();
+      }).join('');
 }
